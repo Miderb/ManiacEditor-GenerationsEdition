@@ -47,7 +47,7 @@ namespace ManiacEditor
         double Zoom = 1;
         int ZoomLevel = 0;
         public String ToolbarSelectedTile;
-        bool SceneLoaded = false;
+        public bool SceneLoaded = false;
         bool AllowSceneChange = false;
 
         public static string DataDirectory;
@@ -825,7 +825,9 @@ namespace ManiacEditor
             }
             if (ClickedX != -1)
             {
-                Point clicked_point = new Point((int)(ClickedX / Zoom), (int)(ClickedY / Zoom));
+                int ClickedXZoom = (int)(ClickedX/ Zoom);
+                int ClickedYZoom = (int)(ClickedY / Zoom);
+                Point clicked_point = new Point(ClickedXZoom,ClickedYZoom);
                 // There was just a click now we can determine that this click is dragging
                 if (IsTilesEdit())
                 {
@@ -855,6 +857,10 @@ namespace ManiacEditor
                         draggingSelection = true;
                         selectingX = ClickedX;
                         selectingY = ClickedY;
+                    }
+                    if (Properties.Settings.Default.AllowMoreRenderUpdates)
+                    {
+                        UpdateRender();
                     }
                 }
                 else if (IsEntitiesEdit())
@@ -962,7 +968,7 @@ namespace ManiacEditor
             }
             if (Properties.Settings.Default.pixelCountMode == false)
             { 
-                selectionSizeLabel.Text = "Amount of Tiles in Selection: " + (SelectedTilesCount - DeselectTilesCount);
+                selectionSizeLabel.Text = "Amount of Tiles in Selection: " + (SelectedTilesCount - DeselectTilesCount) + " Debug Note: " + EditorLayer.selectedState;
                 selectionSizeLabel.ToolTipText = "The Size of the Selection";
             }
             else
@@ -2116,14 +2122,19 @@ a valid Data Directory.",
                         y2 = (int)(selectingY / Zoom);
                     }
 
-                    if (Properties.Settings.Default.UseFasterSelectionRendering == false)
+                    if (Properties.Settings.Default.UseFasterSelectionRendering == true)
                     {
                         GraphicPanel.DrawRectangle(x1, y1, x2, y2, Color.FromArgb(100, Color.Purple));
                     }
-                    GraphicPanel.DrawLine(x1, y1, x2, y1, Color.Purple);
-                    GraphicPanel.DrawLine(x1, y1, x1, y2, Color.Purple);
-                    GraphicPanel.DrawLine(x2, y2, x2, y1, Color.Purple);
-                    GraphicPanel.DrawLine(x2, y2, x1, y2, Color.Purple);
+                    else
+                    {
+                        GraphicPanel.DrawRectangle(x1, y1, x2, y2, Color.FromArgb(100, Color.Purple));
+                        GraphicPanel.DrawLine(x1, y1, x2, y1, Color.Purple);
+                        GraphicPanel.DrawLine(x1, y1, x1, y2, Color.Purple);
+                        GraphicPanel.DrawLine(x2, y2, x2, y1, Color.Purple);
+                        GraphicPanel.DrawLine(x2, y2, x1, y2, Color.Purple);
+                    }
+
                 }
             }
             if (scrolling)
@@ -2131,6 +2142,10 @@ a valid Data Directory.",
                 if (vScrollBar1.Visible && hScrollBar1.Visible) GraphicPanel.Draw2DCursor(scrollPosition.X, scrollPosition.Y);
                 else if (vScrollBar1.Visible) GraphicPanel.DrawVertCursor(scrollPosition.X, scrollPosition.Y);
                 else if (hScrollBar1.Visible) GraphicPanel.DrawHorizCursor(scrollPosition.X, scrollPosition.Y);
+                if (Properties.Settings.Default.AllowMoreRenderUpdates)
+                {
+                    UpdateRender();
+                }
             }
             if (showGrid)
                 Background.DrawGrid(GraphicPanel);

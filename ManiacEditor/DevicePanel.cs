@@ -115,7 +115,7 @@ namespace ManiacEditor
                 if ((caps.DeviceCaps & DeviceCaps.PureDevice) != 0 && createFlags ==
                     CreateFlags.HardwareVertexProcessing)
                 {
-                    createFlags |= CreateFlags.PureDevice;
+                    createFlags |= CreateFlags.HardwareVertexProcessing;
                 } 
 
      
@@ -159,6 +159,8 @@ namespace ManiacEditor
                 using (Graphics g = Graphics.FromImage(hvcursorb))
                     Cursors.NoMove2D.Draw(g, new Rectangle(0, 0, 32, 32));
                 MakeGray(hvcursorb);
+
+
 
                 InitDeviceResources();
             }
@@ -338,21 +340,27 @@ namespace ManiacEditor
                     _device.SetSamplerState(0, SamplerState.MagFilter, TextureFilter.Point);
                     _device.SetSamplerState(0, SamplerState.MipFilter, TextureFilter.Point);
                 }
+                if (zoom < 1)
+                {
+                    // If zoomin, just do near-neighbor scaling
+                    _device.SetSamplerState(0, SamplerState.MinFilter, TextureFilter.Point);
+                    _device.SetSamplerState(0, SamplerState.MagFilter, TextureFilter.Point);
+                    _device.SetSamplerState(0, SamplerState.MipFilter, TextureFilter.Point);
+                }
                 sprite.Begin(SpriteFlags.AlphaBlend | SpriteFlags.DoNotModifyRenderState);
 
                 // Render of scene here
                 if (OnRender != null)
                     OnRender(this, new DeviceEventArgs(_device));
 
-                sprite.Transform = Matrix.Scaling(1f, 1f, 1f);
+                    sprite.Transform = Matrix.Scaling(1f, 1f, 1f);
 
-                Rectangle rect1 = new Rectangle(DrawWidth - screen.X, 0, Width - DrawWidth, Height);
-                rect1.Intersect(new Rectangle(0, 0, screen.Width, screen.Height));
-                Rectangle rect2 = new Rectangle(0, DrawHeight - screen.Y, DrawWidth, Height - DrawHeight);
-                rect2.Intersect(new Rectangle(0, 0, screen.Width, screen.Height));
-                DrawTexture(tx, new Rectangle(0, 0, rect1.Width, rect1.Height), new Vector3(0, 0, 0), new Vector3(rect1.X, rect1.Y, 0), SystemColors.Control);
-                DrawTexture(tx, new Rectangle(0, 0, rect2.Width, rect2.Height), new Vector3(0, 0, 0), new Vector3(rect2.X, rect2.Y, 0), SystemColors.Control);
-
+                    Rectangle rect1 = new Rectangle(DrawWidth - screen.X, 0, Width - DrawWidth, Height);
+                    rect1.Intersect(new Rectangle(0, 0, screen.Width, screen.Height));
+                    Rectangle rect2 = new Rectangle(0, DrawHeight - screen.Y, DrawWidth, Height - DrawHeight);
+                    rect2.Intersect(new Rectangle(0, 0, screen.Width, screen.Height));
+                    DrawTexture(tx, new Rectangle(0, 0, rect1.Width, rect1.Height), new Vector3(0, 0, 0), new Vector3(rect1.X, rect1.Y, 0), SystemColors.Control);
+                    DrawTexture(tx, new Rectangle(0, 0, rect2.Width, rect2.Height), new Vector3(0, 0, 0), new Vector3(rect2.X, rect2.Y, 0), SystemColors.Control);
                 sprite.End();
                 sprite2.End();
                 //End the scene
@@ -476,26 +484,70 @@ namespace ManiacEditor
 
         private void DrawTexture(Texture image, Rectangle srcRect, Vector3 center, Vector3 position, Color color)
         {
-            sprite.Draw(image, new SharpDX.Color(color.R, color.G, color.B, color.A), new SharpDX.Rectangle(srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height), center, position);
+                sprite.Draw(image, new SharpDX.Color(color.R, color.G, color.B, color.A), new SharpDX.Rectangle(srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height), center, position);
+            
         }
 
         private void DrawTexture2(Texture image, Rectangle srcRect, Vector3 center, Vector3 position, Color color)
         {
-            sprite2.Draw(image, new SharpDX.Color(color.R, color.G, color.B, color.A), new SharpDX.Rectangle(srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height), center, position);
+                sprite2.Draw(image, new SharpDX.Color(color.R, color.G, color.B, color.A), new SharpDX.Rectangle(srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height), center, position);
+            
         }
 
         public void DrawBitmap(Texture image, int x, int y, int width, int height, bool selected, int transparency)
         {
-            if (Properties.Settings.Default.AlwaysRenderTextures == true)
+
+            if (Properties.Settings.Default.AlwaysRenderTextures == false)
             {
                 if (!IsObjectOnScreen(x, y, width, height)) return;
             }
 
 
-
             Rectangle screen = _parent.GetScreen();
             double zoom = _parent.GetZoom();
             DrawTexture(image, new Rectangle(0, 0, width, height), new Vector3(), new Vector3(x - (int)(screen.X / zoom), y - (int)(screen.Y / zoom), 0), (selected) ? Color.BlueViolet : Color.FromArgb(transparency, Color.White));
+        }
+        public void DrawBitmapTiles(Texture image, int x, int y, int width, int height, bool selected, int transparency)
+        {
+            if (!IsObjectOnScreen(x, y, x + width, y + height)) return;
+
+
+            /*Rectangle screen = _parent.GetScreen();
+            double zoom = _parent.GetZoom();
+            Rectangle rectangle = new Rectangle(0, 0, width, height);
+            
+            Vector3 vector = new Vector3();
+            Vector3 vector2 = new Vector3(x - (int)(screen.X / zoom), y - (int)(screen.Y / zoom), 0);*/
+            //if (selected)
+            //{
+                //DrawTexture(image, rectangle, vector, vector2, Color.FromArgb(transparency, Color.White));
+                DrawRectangle(x, y, x + width, y + height, Color.FromArgb(100, Color.Purple));
+                
+            //}
+            //else
+            //{
+            //    DrawTexture(image, rectangle, vector, vector2, Color.FromArgb(transparency, Color.White));
+            //}
+ 
+        }
+        public void DrawChunkBitmap(Texture image, int x, int y, int width, int height, bool selected, int transparency)
+        {
+
+            if (Properties.Settings.Default.AlwaysRenderTextures == false)
+            {
+                if (!IsObjectOnScreen(x, y, width, height)) return;
+            }
+
+
+            int x2 = x + width;
+            int y2 = y + height;
+            Rectangle screen = _parent.GetScreen();
+            double zoom = _parent.GetZoom();
+            //DrawTexture(image, new Rectangle(0, 0, width, height), new Vector3(), new Vector3(x - (int)(screen.X / zoom), y - (int)(screen.Y / zoom), 0), (selected) ? Color.BlueViolet : Color.FromArgb(transparency, Color.White));
+            DrawLine(x, y, x2, y, Color.Red);
+            DrawLine(x, y, x, y2, Color.Red);
+            DrawLine(x2, y2, x2, y, Color.Red);
+            DrawLine(x2, y2, x, y2, Color.Red);
         }
 
         public void DrawBitmap(Texture image, int x, int y, Rectangle size, bool selected, int transparency)
@@ -631,7 +683,7 @@ namespace ManiacEditor
 
         public void DrawRectangle(int x1, int y1, int x2, int y2, Color color)
         {
-            //if (!IsObjectOnScreen(x1, y1, x2 - x1, y2 - y1)) return;
+            if (!IsObjectOnScreen(x1, y1, x2 - x1, y2 - y1)) return;
 
             Rectangle screen = _parent.GetScreen();
             double zoom = _parent.GetZoom();
