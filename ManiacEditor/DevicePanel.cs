@@ -7,12 +7,24 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using SharpDX;
-using SharpDX.Direct3D9;
+using SharpDX.Direct3D11;
 using SharpDX.Windows;
+using SharpDX.DXGI;
+using Device = SharpDX.Direct3D11.Device;
 using Font = SharpDX.Direct3D9.Font;
 using Rectangle = System.Drawing.Rectangle;
 using Color = System.Drawing.Color;
 using Point = System.Drawing.Point;
+using SwapEffect = SharpDX.DXGI.SwapEffect;
+using PresentParameters = SharpDX.DXGI.PresentParameters;
+using ClearFlags = SharpDX.Direct3D9.ClearFlags;
+using Capabilities = SharpDX.Direct3D9.Capabilities;
+using ResultCode = SharpDX.Direct3D9.ResultCode;
+using FontDescription = SharpDX.Direct3D9.FontDescription;
+using Direct3D = SharpDX.Direct3D9.Direct3D;
+using CreateFlags = SharpDX.Direct3D9.CreateFlags;
+using DeviceCaps = SharpDX.Direct3D9.DeviceCaps;
+
 
 /*
  * This file is a ported old rendering code
@@ -33,15 +45,15 @@ namespace ManiacEditor
 
         Sprite sprite;
         Sprite sprite2;
-        Texture tx;
+        Texture2D tx;
         Bitmap txb;
-        Texture tcircle;
-        Texture tecircle;
-        Texture hvcursor;
+        Texture2D tcircle;
+        Texture2D tecircle;
+        Texture2D hvcursor;
         Bitmap hvcursorb;
-        Texture vcursor;
+        Texture2D vcursor;
         Bitmap vcursorb;
-        Texture hcursor;
+        Texture2D hcursor;
         Bitmap hcursorb;
         Bitmap tcircleb;
         Bitmap tecircleb;
@@ -50,9 +62,9 @@ namespace ManiacEditor
         public bool bRender = true;
 
         // The DirectX device
-        internal Device _device = null;
+        internal SharpDX.Direct3D11.Device _device = new SharpDX.Direct3D11.Device(SharpDX.Direct3D.DriverType.Software, DeviceCreationFlags.Debug);
         private bool deviceLost;
-        private Direct3D direct3d = new Direct3D();
+        private Direct3D direct3D = new Direct3D();
         private Font font;
         private Font fontBold;
         //public VertexBuffer vb;
@@ -99,7 +111,7 @@ namespace ManiacEditor
                 presentParams.Windowed = true;
                 presentParams.SwapEffect = SwapEffect.Discard;
 
-                Capabilities caps = direct3d.Adapters.First().GetCaps(DeviceType.Hardware);
+                Capabilities caps = direct3D.Adapters.First().GetCaps(DeviceType.Hardware);
 
                 CreateFlags createFlags;
 
@@ -119,7 +131,7 @@ namespace ManiacEditor
                 } 
 
      
-                _device = new Device(direct3d, 0, DeviceType.Hardware, this.Handle, createFlags, presentParams);
+                _device = new Device(direct3D, 0, DeviceType.Hardware, this.Handle, createFlags, );
                 _device.SetSamplerState(0, SamplerState.MinFilter, TextureFilter.Point);
                 _device.SetSamplerState(0, SamplerState.MagFilter, TextureFilter.Point);
                 _device.SetSamplerState(0, SamplerState.MipFilter, TextureFilter.Point);
@@ -246,8 +258,8 @@ namespace ManiacEditor
             if (_device == null) return;
 
             Result result =_device.TestCooperativeLevel();
-            if (result == ResultCode.DeviceLost) return;
-            if (result == ResultCode.DeviceNotReset) { 
+            if (result == SharpDX.Direct3D9.ResultCode.DeviceLost) return;
+            if (result == SharpDX.Direct3D9.ResultCode.DeviceNotReset) { 
                 try
                 {
                     Editor.Instance.DeviceExceptionDialog();
@@ -256,7 +268,7 @@ namespace ManiacEditor
                 catch (SharpDXException ex)
                 {
                     // If it's still lost or lost again, just do nothing
-                    if (ex.ResultCode == ResultCode.DeviceLost) return;
+                    if (ex.ResultCode == SharpDX.Direct3D9.ResultCode.DeviceLost) return;
                     //else Editor.Instance.DeviceExceptionDialog();
                 }
             }
@@ -330,15 +342,15 @@ namespace ManiacEditor
 
                 sprite.Transform = Matrix.Scaling((float)zoom, (float)zoom, 1f);
 
-                sprite2.Begin(SpriteFlags.AlphaBlend);
+                //sprite2.Begin(SpriteFlags.AlphaBlend);
                 if (zoom > 1)
                 {
                     // If zoomin, just do near-neighbor scaling
-                    _device.SetSamplerState(0, SamplerState.MinFilter, TextureFilter.Point);
-                    _device.SetSamplerState(0, SamplerState.MagFilter, TextureFilter.Point);
-                    _device.SetSamplerState(0, SamplerState.MipFilter, TextureFilter.Point);
+                    //_device.SetSamplerState(0, SamplerState.MinFilter, TextureFilter.Point);
+                    //_device.SetSamplerState(0, SamplerState.MagFilter, TextureFilter.Point);
+                    //_device.SetSamplerState(0, SamplerState.MipFilter, TextureFilter.Point);
                 }
-                sprite.Begin(SpriteFlags.AlphaBlend | SpriteFlags.DoNotModifyRenderState);
+                //sprite.Begin(SpriteFlags.AlphaBlend | SpriteFlags.DoNotModifyRenderState);
 
                 // Render of scene here
                 if (OnRender != null)
@@ -356,8 +368,8 @@ namespace ManiacEditor
                 sprite.End();
                 sprite2.End();
                 //End the scene
-                _device.EndScene();
-                _device.Present();
+                //_device.EndScene();
+                //_device.Present();
             }
             catch (SharpDXException ex)
             {
@@ -474,17 +486,17 @@ namespace ManiacEditor
                 || (y + height) * zoom < screen.Y);
         }
 
-        private void DrawTexture(Texture image, Rectangle srcRect, Vector3 center, Vector3 position, Color color)
+        private void DrawTexture(Texture2D image, Rectangle srcRect, Vector3 center, Vector3 position, Color color)
         {
             sprite.Draw(image, new SharpDX.Color(color.R, color.G, color.B, color.A), new SharpDX.Rectangle(srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height), center, position);
         }
 
-        private void DrawTexture2(Texture image, Rectangle srcRect, Vector3 center, Vector3 position, Color color)
+        private void DrawTexture2(Texture2D image, Rectangle srcRect, Vector3 center, Vector3 position, Color color)
         {
             sprite2.Draw(image, new SharpDX.Color(color.R, color.G, color.B, color.A), new SharpDX.Rectangle(srcRect.X, srcRect.Y, srcRect.Width, srcRect.Height), center, position);
         }
 
-        public void DrawBitmap(Texture image, int x, int y, int width, int height, bool selected, int transparency)
+        public void DrawBitmap(Texture2D image, int x, int y, int width, int height, bool selected, int transparency)
         {
             if (Properties.Settings.Default.AlwaysRenderTextures == true)
             {
@@ -498,7 +510,7 @@ namespace ManiacEditor
             DrawTexture(image, new Rectangle(0, 0, width, height), new Vector3(), new Vector3(x - (int)(screen.X / zoom), y - (int)(screen.Y / zoom), 0), (selected) ? Color.BlueViolet : Color.FromArgb(transparency, Color.White));
         }
 
-        public void DrawBitmap(Texture image, int x, int y, Rectangle size, bool selected, int transparency)
+        public void DrawBitmap(Texture2D image, int x, int y, Rectangle size, bool selected, int transparency)
         {
             if (!IsObjectOnScreen(x, y, size.Width, size.Height)) return;
 
@@ -753,7 +765,7 @@ namespace ManiacEditor
             DisposeDeviceResources();
             _parent.DisposeTextures();
             _device.Dispose();
-            direct3d.Dispose();
+            //direct3d.Dispose();
             base.Dispose();
         }
     }

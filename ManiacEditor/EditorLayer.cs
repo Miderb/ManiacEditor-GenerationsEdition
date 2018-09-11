@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using RSDKv5;
-using SharpDX.Direct3D9;
+using SharpDX.Direct3D11;
 using ManiacEditor.Actions;
 using ManiacEditor.Enums;
 
@@ -21,7 +21,7 @@ namespace ManiacEditor
         public const int TILE_SIZE = 16;
 
 
-        Texture[][] TileChunksTextures;
+        Texture2D[][] TileChunksTextures;
 
         public PointsMap SelectedTiles;
         
@@ -193,9 +193,9 @@ namespace ManiacEditor
         {
             _layer = layer;
 
-            TileChunksTextures = new Texture[DivideRoundUp(Height, TILES_CHUNK_SIZE)][];
+            TileChunksTextures = new Texture2D[DivideRoundUp(Height, TILES_CHUNK_SIZE)][];
             for (int i = 0; i < TileChunksTextures.Length; ++i)
-                TileChunksTextures[i] = new Texture[DivideRoundUp(Width, TILES_CHUNK_SIZE)];
+                TileChunksTextures[i] = new Texture2D[DivideRoundUp(Width, TILES_CHUNK_SIZE)];
 
             SelectedTiles = new PointsMap(Width, Height);
             TempSelectionTiles = new PointsMap(Width, Height);
@@ -894,7 +894,7 @@ x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, selected, Transperncy);
             }
         }
 
-        private Texture GetTilesChunkTexture(DevicePanel d, int x, int y)
+        private Texture2D GetTilesChunkTexture(DevicePanel d, int x, int y)
         {
             if (this.TileChunksTextures[y][x] != null) return this.TileChunksTextures[y][x];
 
@@ -1014,7 +1014,7 @@ x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, selected, Transperncy);
             Array.Resize(ref TileChunksTextures, DivideRoundUp(Height, TILES_CHUNK_SIZE));
             for (int i = DivideRoundUp(oldHeight, TILES_CHUNK_SIZE); i < TileChunksTextures.Length; i++)
             {
-                TileChunksTextures[i] = new Texture[oldWidthChunkSize];
+                TileChunksTextures[i] = new Texture2D[oldWidthChunkSize];
             }
 
             for (int i = 0; i < TileChunksTextures.Length; i++)
@@ -1029,8 +1029,8 @@ x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, selected, Transperncy);
 
         public void Dispose()
         {
-            foreach (Texture[] textures in TileChunksTextures)
-                foreach (Texture texture in textures)
+            foreach (Texture2D[] textures in TileChunksTextures)
+                foreach (Texture2D texture in textures)
                     if (texture != null)
                         texture.Dispose();
             TileChunksTextures = null;
@@ -1038,7 +1038,7 @@ x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, selected, Transperncy);
 
         public void DisposeTextures()
         {
-            foreach (Texture[] textures in TileChunksTextures)
+            foreach (Texture2D[] textures in TileChunksTextures)
             {
                 for (int i = 0; i < textures.Length; ++i)
                 {

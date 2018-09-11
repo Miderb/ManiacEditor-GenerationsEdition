@@ -13,7 +13,7 @@ using System.Windows.Forms;
 using ManiacEditor.Actions;
 using ManiacEditor.Enums;
 using RSDKv5;
-using SharpDX.Direct3D9;
+using SharpDX.Direct3D11;
 using Color = System.Drawing.Color;
 
 namespace ManiacEditor

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Threading.Tasks;
-using SharpDX.Direct3D9;
+using SharpDX.Direct3D11;
 using SystemColor = System.Drawing.Color;
 using System.IO;
 
@@ -16,7 +16,7 @@ namespace RSDKv5
         string _bitmapFilename;
 
         Dictionary<Tuple<Rectangle, bool, bool>, Bitmap> _bitmapCache = new Dictionary<Tuple<Rectangle, bool, bool>, Bitmap>();
-        Dictionary<Tuple<Rectangle, bool, bool>, Texture> _texturesCache = new Dictionary<Tuple<Rectangle, bool, bool>, Texture>();
+        Dictionary<Tuple<Rectangle, bool, bool>, Texture2D> _texturesCache = new Dictionary<Tuple<Rectangle, bool, bool>, Texture2D>();
 
         public GIF(string filename)
         {
@@ -80,16 +80,16 @@ namespace RSDKv5
         }
 
         // TOREMOVE
-        public Texture GetTexture(Device device, Rectangle section, bool flipX = false, bool flipY = false)
+        public Texture2D GetTexture(Device device, Rectangle section, bool flipX = false, bool flipY = false)
         {
-            Texture texture;
+            Texture2D texture;
             if (_texturesCache.TryGetValue(new Tuple<Rectangle, bool, bool>(section, flipX, flipY), out texture)) return texture;
 
             using (MemoryStream memoryStream = new MemoryStream())
             {
                 GetBitmap(section, flipX, flipY).Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
                 memoryStream.Seek(0, SeekOrigin.Begin);
-                texture = Texture.FromStream(device, memoryStream);
+                texture = Texture2D.FromStream(device, memoryStream);
             }
 
             _texturesCache[new Tuple<Rectangle, bool, bool>(section, flipX, flipY)] = texture;
@@ -104,7 +104,7 @@ namespace RSDKv5
         public void DisposeTextures()
         {
             if (null == _texturesCache) return;
-            foreach (Texture texture in _texturesCache.Values)
+            foreach (Texture2D texture in _texturesCache.Values)
                 texture?.Dispose();
             _texturesCache.Clear();
         }
