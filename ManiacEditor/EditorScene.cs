@@ -98,7 +98,7 @@ namespace ManiacEditor
                     // dispose managed state (managed objects).
                     foreach (var el in _editorLayers)
                     {
-                        el.Dispose();
+                        //el.DisposeGraphics();
                     }
                 }
 

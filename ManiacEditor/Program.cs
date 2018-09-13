@@ -37,7 +37,7 @@ Missing file: {fnfe.FileName}");
 
             if (allowedToLoad)
             {
-                new Editor().Run();
+                new Editor();
             }
         }
 

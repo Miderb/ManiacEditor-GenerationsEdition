@@ -255,7 +255,7 @@ namespace ManiacEditor
 
         #endregion
 
-        private void InitializeComponent()
+        /*private void InitializeComponent()
         {
             this.SuspendLayout();
             // 
@@ -266,6 +266,6 @@ namespace ManiacEditor
             this.Name = "GLViewControl";
             this.ResumeLayout(false);
 
-        }
+        }*/
     }
 }

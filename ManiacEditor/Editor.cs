@@ -13,8 +13,10 @@ using System.Windows.Forms;
 using ManiacEditor.Actions;
 using ManiacEditor.Enums;
 using RSDKv5;
-using SharpDX.Direct3D11;
 using Color = System.Drawing.Color;
+using OpenTK;   
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Platform.Windows;
 
 namespace ManiacEditor
 {
@@ -29,6 +31,8 @@ namespace ManiacEditor
         public bool showCollisionA;
         public bool showCollisionB;
         public int backupType = 0;
+
+        public const double LAYER_DEPTH = 0.1;
 
         public List<Bitmap> CollisionLayerA = new List<Bitmap>();
         public List<Bitmap> CollisionLayerB = new List<Bitmap>();
@@ -111,7 +115,7 @@ namespace ManiacEditor
         {
             Instance = this;
             InitializeComponent();
-            InitDiscord();
+            //InitDiscord();
 
             /*using (var customMsgBox = new CustomMsgBox($"The specified Data Directory {1} is not valid. Please Try again with a Better Data Directory. It could be outdated, corrupted or worse something else", "Invalid Data Directory!", 2, 1))
             {
@@ -694,7 +698,7 @@ namespace ManiacEditor
             {
                 if (e.Alt)
                 {
-                    saveAsToolStripMenuItem_Click(null, null);
+                    //saveAsToolStripMenuItem_Click(null, null);
                 }
                 else
                 {
@@ -969,7 +973,7 @@ namespace ManiacEditor
                     }
                     GraphicPanel.OnMouseMoveEventCreate();
                 }
-                GraphicPanel.Render();
+                GraphicPanel.Update();
             }
 
             //
@@ -1076,7 +1080,8 @@ namespace ManiacEditor
                         {
                             hScrollBar1.Value = x;
                         }
-                        GraphicPanel.Render();
+                        GraphicPanel.Update();
+                        GraphicPanel.Invalidate();
                         GraphicPanel.OnMouseMoveEventCreate();
                     }
 
@@ -1594,7 +1599,7 @@ namespace ManiacEditor
             SelectedScene = null;
             SelectedZone = null;
 
-            if (StageTiles != null) StageTiles.Dispose();
+            if (StageTiles != null) StageTiles.DisposeTextures();
             StageTiles = null;
 
             TearDownExtraLayerButtons();
@@ -1785,7 +1790,7 @@ namespace ManiacEditor
 
             SetupLayerButtons();
 
-            Background = new EditorBackground();
+            Background = new EditorBackground(SceneWidth, SceneHeight);
 
             entities = new EditorEntities(EditorScene);
 
@@ -1875,9 +1880,10 @@ namespace ManiacEditor
 
             SetupLayerButtons();
 
-            Background = new EditorBackground();
+            //ScreenWidth = FGLow.Width * 16;
+            //SceneHeight = FGLow.Height * 16;
 
-            entities = new EditorEntities(EditorScene);
+            Background = new EditorBackground(SceneWidth, SceneHeight);
 
             SetViewSize(SceneWidth, SceneHeight);
 
@@ -2036,8 +2042,8 @@ namespace ManiacEditor
             vScrollBar1.Maximum = height;
             hScrollBar1.Maximum = width;
 
-            GraphicPanel.DrawWidth = Math.Min(width, GraphicPanel.Width);
-            GraphicPanel.DrawHeight = Math.Min(height, GraphicPanel.Height);
+            GraphicPanel.Height = Math.Min(width, GraphicPanel.Width);
+            GraphicPanel.Width = Math.Min(height, GraphicPanel.Height);
 
             Form1_Resize(null, null);
 
@@ -2055,10 +2061,10 @@ namespace ManiacEditor
             GraphicPanel.Width = width;
             GraphicPanel.Height = height;
 
-            GraphicPanel.ResetDevice();
+            //GraphicPanel.ResetDevice();
 
-            GraphicPanel.DrawWidth = Math.Min(hScrollBar1.Maximum, GraphicPanel.Width);
-            GraphicPanel.DrawHeight = Math.Min(vScrollBar1.Maximum, GraphicPanel.Height);
+            //GraphicPanel.DrawWidth = Math.Min(hScrollBar1.Maximum, GraphicPanel.Width);
+            //.DrawHeight = Math.Min(vScrollBar1.Maximum, GraphicPanel.Height);
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -2094,86 +2100,170 @@ a valid Data Directory.",
 
         public void OnResetDevice(object sender, DeviceEventArgs e)
         {
-            Device device = e.Device;
+            //Device device = e.Device;
         }
 
-        private void GraphicPanel_OnRender(object sender, DeviceEventArgs e)
+        private void GraphicPanel_Render(object sender, System.EventArgs e)
         {
+
+
+            //GL.Enable(EnableCap.AlphaTest);
+            //GL.AlphaFunc(AlphaFunction.Greater, 0f);
+
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
+            GL.Enable(EnableCap.DepthTest);
+
+            GL.Color3(System.Drawing.Color.White);
+            GL.Begin(PrimitiveType.Quads);
+            GL.Vertex2(0, 0);
+            GL.Vertex2(0, SceneHeight);
+            GL.Vertex2(SceneWidth, SceneHeight);
+            GL.Vertex2(SceneWidth, 0);
+            GL.End();
+            /*GL.PushMatrix();
+            GL.Translate(100f, 0.0, 0.0);
+            GL.LineWidth(5.0f * (float)GraphicPanel.Zoom);
+            GL.Color3(1.0f, 0.0f, 0.0f);
+            GL.Begin(PrimitiveType.LineLoop);
+            GL.Vertex2(100f, 0f);
+            GL.Vertex2(200f, 100f);
+            GL.Vertex2(200f, 200f);
+            GL.End();
+            GL.PopMatrix();*/
+
             // hmm, if I call refresh when I update the values, for some reason it will stop to render until I stop calling refrsh
             // So I will refresh it here
             if (entitiesToolbar?.NeedRefresh ?? false) entitiesToolbar.PropertiesRefresh();
             if (EditorScene != null)
             {
+                GL.PushMatrix();
+                GL.Translate(0, 0, LAYER_DEPTH);
                 if (!IsTilesEdit())
+                {
                     Background.Draw(GraphicPanel);
+                }
                 if (IsTilesEdit())
+                {
                     if (Properties.Settings.Default.ShowEditLayerBackground == true)
-                    Background.DrawEdit(GraphicPanel);
+                    {
+                        GL.Translate(0, 0, LAYER_DEPTH);
+                        Background.DrawEdit(GraphicPanel);
+                    }
+                }
                 if (EditorScene.OtherLayers.Contains(EditLayer))
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
                     EditLayer.Draw(GraphicPanel);
+                }
                 if (ShowFGLower.Checked || EditFGLower.Checked)
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
                     FGLower.Draw(GraphicPanel);
+                }
                 if (ShowFGLow.Checked || EditFGLow.Checked)
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
                     FGLow.Draw(GraphicPanel);
+                }
                 if (ShowEntities.Checked && !EditEntities.Checked)
-                    entities.Draw(GraphicPanel);
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
+                    /*entities.Draw(GraphicPanel);*/
+                }
                 if (ShowFGHigh.Checked || EditFGHigh.Checked)
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
                     FGHigh.Draw(GraphicPanel);
+                }
+
                 if (ShowFGHigher.Checked || EditFGHigher.Checked)
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
                     FGHigher.Draw(GraphicPanel);
+                }
                 if (EditEntities.Checked)
-                    entities.Draw(GraphicPanel);
+                {
+                    GL.Translate(0, 0, LAYER_DEPTH);
+                    /*entities.Draw(GraphicPanel);*/
+                }
+
 
 
 
             }
             if (draggingSelection)
             {
-                int x1 = (int)(selectingX / Zoom), x2 = (int)(lastX / Zoom);
-                int y1 = (int)(selectingY / Zoom), y2 = (int)(lastY / Zoom);
+                int x1 = selectingX, x2 = lastX;
+                int y1 = selectingY, y2 = lastY;
                 if (x1 != x2 && y1 != y2)
                 {
                     if (x1 > x2)
                     {
-                        x1 = (int)(lastX / Zoom);
-                        x2 = (int)(selectingX / Zoom);
+                        x1 = lastX;
+                        x2 = selectingX;
                     }
                     if (y1 > y2)
                     {
-                        y1 = (int)(lastY / Zoom);
-                        y2 = (int)(selectingY / Zoom);
+                        y1 = lastY;
+                        y2 = selectingY;
                     }
 
-                    if (Properties.Settings.Default.UseFasterSelectionRendering == false)
-                    {
-                        GraphicPanel.DrawRectangle(x1, y1, x2, y2, Color.FromArgb(100, Color.Purple));
-                    }
-                    GraphicPanel.DrawLine(x1, y1, x2, y1, Color.Purple);
-                    GraphicPanel.DrawLine(x1, y1, x1, y2, Color.Purple);
-                    GraphicPanel.DrawLine(x2, y2, x2, y1, Color.Purple);
-                    GraphicPanel.DrawLine(x2, y2, x1, y2, Color.Purple);
+                    GL.PushMatrix();
+                    GL.Translate(0, 0, 0.9f);
+
+                    // Draw rectangle
+                    GL.Begin(PrimitiveType.Quads);
+                    GL.Color4(System.Drawing.Color.Purple.R, System.Drawing.Color.Purple.G, System.Drawing.Color.Purple.B, (byte)50);
+                    GL.Vertex2(x1, y1);
+                    GL.Vertex2(x2, y1);
+                    GL.Vertex2(x2, y2);
+                    GL.Vertex2(x1, y2);
+                    GL.End();
+
+                    // Draw the lines around
+                    GL.Translate(0, 0, 0.05f);
+                    GL.Begin(PrimitiveType.Lines);
+                    GL.Color3(System.Drawing.Color.Purple);
+                    GL.LineWidth(1.0f);
+                    GL.Vertex2(x1, y1);
+                    GL.Vertex2(x2, y1);
+                    GL.Vertex2(x2, y1);
+                    GL.Vertex2(x2, y2);
+                    GL.Vertex2(x2, y2);
+                    GL.Vertex2(x1, y2);
+                    GL.Vertex2(x1, y2);
+                    GL.Vertex2(x1, y1);
+                    GL.End();
+
+                    GL.PopMatrix();
                 }
             }
-            if (scrolling)
+            /*if (scrolling)
             {
                 if (vScrollBar1.Visible && hScrollBar1.Visible) GraphicPanel.Draw2DCursor(scrollPosition.X, scrollPosition.Y);
                 else if (vScrollBar1.Visible) GraphicPanel.DrawVertCursor(scrollPosition.X, scrollPosition.Y);
                 else if (hScrollBar1.Visible) GraphicPanel.DrawHorizCursor(scrollPosition.X, scrollPosition.Y);
-            }
+            }*/
+
             if (showGrid)
-                Background.DrawGrid(GraphicPanel);
+                /*Background.DrawGrid(GraphicPanel);*/
+
+            GL.Disable(EnableCap.Blend);
+            //GL.Disable(EnableCap.AlphaTest);
+            GL.Disable(EnableCap.DepthTest);
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            GraphicPanel.Init(this);
+            //GraphicPanel.Init(this);
         }
 
         public void Run()
         {
-            Show();
+            /*Show();
             Focus();
-            GraphicPanel.Run();
+            GraphicPanel.();*/
 
         }
 
@@ -2349,23 +2439,24 @@ Error: {ex.Message}");
         }
         private void saveAspngToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (EditorScene == null) return;
-
-            SaveFileDialog save = new SaveFileDialog();
-            save.Filter = ".png File|*.png";
-            save.DefaultExt = "png";
-            if (save.ShowDialog() != DialogResult.Cancel)
+            if (EditorScene != null)
             {
-                using (Bitmap bitmap = new Bitmap(SceneWidth, SceneHeight))
-                using (Graphics g = Graphics.FromImage(bitmap))
+                SaveFileDialog save = new SaveFileDialog();
+                save.Filter = ".png File|*.png";
+                save.DefaultExt = "png";
+                if (save.ShowDialog() != DialogResult.Cancel)
                 {
-                    // not all scenes have both a Low and a High foreground
-                    // only attempt to render the ones we actually have
-                    FGLow?.Draw(g);
-                    FGHigh?.Draw(g);
-                    FGLower?.Draw(g);
-                    FGHigher?.Draw(g);
-                    bitmap.Save(save.FileName);
+                    using (Bitmap bitmap = new Bitmap(SceneWidth, SceneHeight))
+                    {
+                        using (Graphics g = Graphics.FromImage(bitmap))
+                        {
+                            FGLow.Draw(g);
+                            FGHigh.Draw(g);
+                            FGLower.Draw(g);
+                            FGHigher.Draw(g);
+                        }
+                        bitmap.Save(save.FileName);
+                    }
                 }
             }
         }
@@ -2696,14 +2787,14 @@ Error: {ex.Message}");
             {
                 Point rel = GraphicPanel.PointToScreen(Point.Empty);
                 EditLayer.DragOver(new Point((int)(((e.X - rel.X) + ShiftX) / Zoom), (int)(((e.Y - rel.Y) + ShiftY) / Zoom)), (ushort)TilesToolbar.SelectedTile);
-                GraphicPanel.Render();
+                GraphicPanel.Update();
             }
         }
 
         private void GraphicPanel_DragLeave(object sender, EventArgs e)
         {
             EditLayer?.EndDragOver(true);
-            GraphicPanel.Render();
+            GraphicPanel.Update();
         }
 
         private void GraphicPanel_DragDrop(object sender, DragEventArgs e)
@@ -2765,7 +2856,6 @@ Error: {ex.Message}");
                 GraphicPanel_OnKeyDown(sender, e);
             }
         }
-
         private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (EditorScene == null) return;
@@ -3119,25 +3209,25 @@ Error: {ex.Message}");
 
         private void resetDeviceButton_Click(object sender, EventArgs e)
         {
-            GraphicPanel.ResetDevice();
+            //GraphicPanel.ResetDevice();
         }
 
         private void vScrollBar1_Scroll(object sender, ScrollEventArgs e)
         {
             ShiftY = e.NewValue;
-            GraphicPanel.Render();
+            GraphicPanel.Update();
         }
 
         private void hScrollBar1_Scroll(object sender, ScrollEventArgs e)
         {
             ShiftX = e.NewValue;
-            GraphicPanel.Render();
+            GraphicPanel.Update();
         }
 
         private void vScrollBar1_ValueChanged(object sender, EventArgs e)
         {
             ShiftY = (sender as VScrollBar).Value;
-            if (!(zooming || draggingSelection || dragged || scrolling)) GraphicPanel.Render();
+            if (!(zooming || draggingSelection || dragged || scrolling)) GraphicPanel.Update();
 
             if (draggingSelection)
             {
@@ -3148,7 +3238,7 @@ Error: {ex.Message}");
         private void hScrollBar1_ValueChanged(object sender, EventArgs e)
         {
             ShiftX = hScrollBar1.Value;
-            if (!(zooming || draggingSelection || dragged || scrolling)) GraphicPanel.Render();
+            if (!(zooming || draggingSelection || dragged || scrolling)) GraphicPanel.Update();
         }
 
         private void showTileIDButton_Click(object sender, EventArgs e)
@@ -3445,16 +3535,16 @@ Error: {ex.Message}");
         {
             // Make sure to dispose the textures of the extra layers too
             StageTiles?.DisposeTextures();
-            if (FGHigh != null) FGHigh.DisposeTextures();
-            if (FGLow != null) FGLow.DisposeTextures();
-            if (FGHigher != null) FGHigh.DisposeTextures();
-            if (FGLower != null) FGLow.DisposeTextures();
+            if (FGHigh != null) FGHigh.DisposeGraphics(GraphicPanel);
+            if (FGLow != null) FGLow.DisposeGraphics(GraphicPanel);
+            if (FGHigher != null) FGHigher.DisposeGraphics(GraphicPanel);
+            if (FGLower != null) FGLower.DisposeGraphics(GraphicPanel);
             //if (CollisionLayerA != null) CollisionLayerA.Clear();
             //if (CollisionLayerB != null) CollisionLayerB.Clear();
 
             foreach (var el in EditorScene.OtherLayers)
             {
-                el.DisposeTextures();
+                el.DisposeGraphics(GraphicPanel);
             }
         }
 
@@ -3479,12 +3569,12 @@ Error: {ex.Message}");
             if (deviceExceptionResult == DialogResult.Yes) //Yes and Exit
             {
                 Editor.Instance.backupSceneBeforeCrash();
-                Environment.Exit(1);
+                //Environment.Exit(1);
 
             }
             else if (deviceExceptionResult == DialogResult.No) //No and try to Restart
             {
-                GraphicPanel.ResetDevice();
+                //GraphicPanel.ResetDevice();
 
             }
             else if (deviceExceptionResult == DialogResult.Retry) //Yes and try to Restart
@@ -3495,7 +3585,7 @@ Error: {ex.Message}");
             }
             else if (deviceExceptionResult == DialogResult.Ignore) //No and Exit
             {
-                Environment.Exit(1);
+                //Environment.Exit(1);
             }
         }
         private void Editor_FormClosing1(object sender, System.Windows.Forms.FormClosingEventArgs e)
@@ -3511,11 +3601,11 @@ Error: {ex.Message}");
                 if (exitBoxResult == DialogResult.Yes)
                 {
                     Save_Click(sender, e);
-                    Environment.Exit(1);
+                    //Environment.Exit(1);
                 }
                 else if (exitBoxResult == DialogResult.No)
                 {
-                    Environment.Exit(1);
+                    //Environment.Exit(1);
                 }
                 else
                 {
@@ -3524,7 +3614,7 @@ Error: {ex.Message}");
             }
             else
             {
-                Environment.Exit(1);
+                //Environment.Exit(1);
             }
 
         }
@@ -3561,7 +3651,7 @@ Error: {ex.Message}");
 
         public void UpdateRender()
         {
-            GraphicPanel.Render();
+            GraphicPanel.Update();
         }
     }
 }

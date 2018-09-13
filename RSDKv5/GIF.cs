@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Threading.Tasks;
-using SharpDX.Direct3D11;
+using SharpDX.Direct3D9;
 using SystemColor = System.Drawing.Color;
 using System.IO;
 
@@ -15,8 +15,10 @@ namespace RSDKv5
         Bitmap _bitmap;
         string _bitmapFilename;
 
+        public Bitmap Bitmap { get { return _bitmap; } }
+
         Dictionary<Tuple<Rectangle, bool, bool>, Bitmap> _bitmapCache = new Dictionary<Tuple<Rectangle, bool, bool>, Bitmap>();
-        Dictionary<Tuple<Rectangle, bool, bool>, Texture2D> _texturesCache = new Dictionary<Tuple<Rectangle, bool, bool>, Texture2D>();
+        Dictionary<Tuple<Rectangle, bool, bool>, Texture> _texturesCache = new Dictionary<Tuple<Rectangle, bool, bool>, Texture>();
 
         public GIF(string filename)
         {
@@ -80,9 +82,9 @@ namespace RSDKv5
         }
 
         // TOREMOVE
-        public Texture2D GetTexture(Device device, Rectangle section, bool flipX = false, bool flipY = false)
+        /*public Texture GetTexture(Device device, Rectangle section, bool flipX = false, bool flipY = false)
         {
-            Texture2D texture;
+            Texture texture;
             if (_texturesCache.TryGetValue(new Tuple<Rectangle, bool, bool>(section, flipX, flipY), out texture)) return texture;
 
             using (MemoryStream memoryStream = new MemoryStream())
@@ -94,7 +96,7 @@ namespace RSDKv5
 
             _texturesCache[new Tuple<Rectangle, bool, bool>(section, flipX, flipY)] = texture;
             return texture;
-        }
+        }*/
 
         public void Dispose()
         {
@@ -104,7 +106,7 @@ namespace RSDKv5
         public void DisposeTextures()
         {
             if (null == _texturesCache) return;
-            foreach (Texture2D texture in _texturesCache.Values)
+            foreach (Texture texture in _texturesCache.Values)
                 texture?.Dispose();
             _texturesCache.Clear();
         }

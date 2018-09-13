@@ -5,8 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Drawing;
+using SharpDX.Direct3D9;
 using SharpDX;
-using SharpDX.Direct3D11;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
